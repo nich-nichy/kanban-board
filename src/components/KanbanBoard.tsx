@@ -19,113 +19,61 @@ function KanbanBoard() {
     useVerifyToken();
     const [columns, setColumns] = useState<Column[]>([]);
     const [tasks, setTasks] = useState<Task[]>([]);
-    const [activeColumn, setActiveColumn] = useState<Column | null>(null)
-    const [activeTask, setActiveTask] = useState<Task | null>(null)
-    const sensors = useSensors(useSensor(PointerSensor, {
-        activationConstraint: {
-            distance: 3
-        }
-    }))
-    const columnsId = useMemo(() => columns.map((col) => col.id), [columns])
+    const [activeColumn, setActiveColumn] = useState<Column | null>(null);
+    const [activeTask, setActiveTask] = useState<Task | null>(null);
+    const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 3 } }));
+    const columnsId = useMemo(() => columns.map((col) => col.id), [columns]);
     const dispatch = useDispatch();
-    const token = Cookies.get('token')
-    const generateId = () => {
-        return Math.floor(Math.random() * 10001)
-    }
-    const createNewColumn = () => {
-        const columnToAdd: Column = {
-            id: generateId(),
-            title: `Column ${columns.length + 1}`,
-        }
-        setColumns([...columns, columnToAdd])
-    }
-    const deleteColumn = (id: Id) => {
-        const filterColumns = columns.filter((col) => col.id !== id);
-        setColumns(filterColumns)
-        const newTasks = tasks.filter((t) => t.columnId !== id);
-        setTasks(newTasks)
-    }
-    const onDragStart = (event: DragStartEvent) => {
-        if (event.active.data.current?.type === "Column") {
-            setActiveColumn(event.active.data.current.column)
-            return
-        }
-        if (event.active.data.current?.type === "Task") {
-            setActiveTask(event.active.data.current.task)
-            return
-        }
-    }
-    const onDragEnd = (event: DragEndEvent) => {
-        setActiveColumn(null);
-        setActiveTask(null);
-        const { active, over } = event;
-        if (!over) return
-        const activeColumnId = active.id;
-        const overColumnId = over.id;
-        if (activeColumnId === overColumnId) return
-        setColumns((columns) => {
-            const activeColumnIndex = columns.findIndex(col => col.id === activeColumnId);
-            const overColumnIndex = columns.findIndex(col => col.id === overColumnId);
-            return arrayMove(columns, activeColumnIndex, overColumnIndex);
-        })
-    }
+    const token = Cookies.get("token");
 
-    const onDragOver = (event: DragOverEvent) => {
-        const { active, over } = event;
-        if (!over) return
-        const activeColumnId = active.id;
-        const overColumnId = over.id;
 
-        if (activeColumnId === overColumnId) return;
-
-        const isActiveATask = active.data.current?.type === "Task";
-        const isOverATask = over.data.current?.type === "Task";
-
-        if (!isActiveATask) return
-
-        if (isActiveATask && isOverATask) {
-            setTasks(tasks => {
-                const activeIndex = tasks.findIndex(t => t.id === activeColumnId);
-                const overIndex = tasks.findIndex(t => t.id === overColumnId);
-                tasks[activeIndex].columnId = tasks[overIndex].columnId;
-                return arrayMove(tasks, activeIndex, overIndex);
-            })
-        }
-
-        const isOverColumn = over.data.current?.type === "Column";
-        if (isActiveATask && isOverColumn) {
-            setTasks(tasks => {
-                const activeIndex = tasks.findIndex(t => t.id === activeColumnId);
-                tasks[activeIndex].columnId = overColumnId;
-                return arrayMove(tasks, activeIndex, activeIndex);
-            })
-        }
-    }
-
-    const updateColumn = (id: Id, title: string) => {
-        const newColumns = columns.map(col => {
-            if (col.id !== id) return col;
-            return {
-                ...col,
-                title
+    const fetchBoardData = async () => {
+        try {
+            const response = await axios.get(`${url}/board/get-board/${token}`);
+            if (response.data.success) {
+                setColumns(response.data.data.columns);
+                setTasks(response.data.data.tasks);
             }
-        })
-        setColumns(newColumns);
-    }
-
-    const createTask = (columnId: Id) => {
-        const newTask: Task = {
-            id: generateId(),
-            columnId,
-            content: `Task ${tasks.length + 1}`
+        } catch (error) {
+            console.error("Error fetching board data:", error);
         }
-        setTasks([...tasks, newTask])
-    }
+    };
 
-    const deleteTask = (id: Id) => {
-        const newTasks = tasks.filter(task => task.id !== id);
-        setTasks(newTasks)
-    }
+
+    const createNewColumn = async () => {
+        const columnToAdd: Column = { id: Date.now(), title: `Column ${columns.length + 1}` };
+        setColumns((prev) => [...prev, columnToAdd]);
+
+    };
+
+    const deleteColumn = async (id: Id) => {
+        setColumns((prev) => prev.filter((col) => col.id !== id));
+        setTasks((prev) => prev.filter((task) => task.columnId !== id));
+
+    };
+
+    const createTask = async (columnId: Id) => {
+        const newTask: Task = { id: Date.now(), columnId, content: `Task ${tasks.length + 1}` };
+        setTasks((prev) => [...prev, newTask]);
+
+    };
+
+    const deleteTask = async (id: Id) => {
+        setTasks((prev) => prev.filter((task) => task.id !== id));
+
+    };
+
+    const onDragStart = (event: DragStartEvent) => {
+        try {
+            if (event.active.data.current?.type === "Column") {
+                setActiveColumn(event.active.data.current.column);
+            } else if (event.active.data.current?.type === "Task") {
+                setActiveTask(event.active.data.current.task);
+            }
+        } catch (error) {
+            console.error("Error on drag start:", error);
+        }
+    };
 
     const updateTask = (id: Id, content: string) => {
         const newTasks = tasks.map(task => {
@@ -138,28 +86,111 @@ function KanbanBoard() {
         setTasks(newTasks)
     }
 
-    useEffect(() => {
-        console.log({ columns, tasks }, "mutated");
-        dispatch(setStateColumns(columns))
-        dispatch(setStateTasks(tasks))
-    }, [tasks, columns])
+    const onDragEnd = async (event: DragEndEvent) => {
+        try {
+            setActiveColumn(null);
+            setActiveTask(null);
 
-    useEffect(() => {
-        const getBoard = async () => {
-            try {
-                const getBoard = await axios.get(`${url}/board/get-board/${token}`);
-                console.log(getBoard)
-                if (getBoard.data.success) {
-                    setColumns(getBoard.data.data.columns)
-                    setTasks(getBoard.data.data.tasks)
-                }
-            } catch (error) {
-                console.log(error);
+            const { active, over } = event;
+            if (!over) return;
+
+            const activeId = active.id;
+            const overId = over.id;
+
+            if (activeId === overId) return;
+
+            if (active.data.current?.type === "Column") {
+                setColumns((prev) => {
+                    const activeIndex = prev.findIndex((col) => col.id === activeId);
+                    const overIndex = prev.findIndex((col) => col.id === overId);
+                    if (activeIndex === -1 || overIndex === -1) return prev; // Handle invalid indexes
+                    return arrayMove(prev, activeIndex, overIndex);
+                });
+            } else if (active.data.current?.type === "Task") {
+                setTasks((prev) => {
+                    const activeIndex = prev.findIndex((task) => task.id === activeId);
+                    const overIndex = prev.findIndex((task) => task.id === overId);
+
+                    if (activeIndex === -1 || overIndex === -1) return prev; // Handle invalid indexes
+
+                    const updatedTasks = [...prev];
+                    updatedTasks[activeIndex] = {
+                        ...updatedTasks[activeIndex],
+                        columnId: updatedTasks[overIndex]?.columnId || active.data.current.columnId,
+                    };
+                    return arrayMove(updatedTasks, activeIndex, overIndex);
+                });
             }
+        } catch (error) {
+            console.error("Error on drag end:", error);
         }
-        getBoard();
-    }, [])
+    };
 
+
+
+    useEffect(() => {
+        fetchBoardData();
+    }, []);
+
+    useEffect(() => {
+        dispatch(setStateColumns(columns));
+        dispatch(setStateTasks(tasks));
+    }, [columns, tasks, dispatch]);
+
+    const updateColumn = (id: Id, title: string) => {
+        const newColumns = columns.map(col => {
+            if (col.id !== id) return col;
+            return {
+                ...col,
+                title
+            }
+        })
+        setColumns(newColumns);
+    }
+
+    const onDragOver = (event: DragOverEvent) => {
+        const { active, over } = event;
+        if (!over) return;
+        const activeColumnId = active.id;
+        const overColumnId = over.id;
+
+        if (activeColumnId === overColumnId) return;
+
+        const isActiveATask = active.data.current?.type === "Task";
+        const isOverATask = over.data.current?.type === "Task";
+
+        if (!isActiveATask) return;
+
+        if (isActiveATask && isOverATask) {
+            setTasks((prev) => {
+                const activeIndex = prev.findIndex((t) => t.id === activeColumnId);
+                const overIndex = prev.findIndex((t) => t.id === overColumnId);
+
+                const updatedTasks = [...prev];
+                updatedTasks[activeIndex] = {
+                    ...updatedTasks[activeIndex],
+                    columnId: updatedTasks[overIndex].columnId,
+                };
+
+                return arrayMove(updatedTasks, activeIndex, overIndex);
+            });
+        }
+
+        const isOverColumn = over.data.current?.type === "Column";
+        if (isActiveATask && isOverColumn) {
+            setTasks((prev) => {
+                const activeIndex = prev.findIndex((t) => t.id === activeColumnId);
+
+                const updatedTasks = [...prev];
+                updatedTasks[activeIndex] = {
+                    ...updatedTasks[activeIndex],
+                    columnId: overColumnId,
+                };
+
+                return updatedTasks;
+            });
+        }
+    };
 
     return (
         <div>
@@ -176,8 +207,8 @@ function KanbanBoard() {
                             <button
                                 onClick={createNewColumn}
                                 className="flex h-[60px] w-[350px] min-w-[350px] items-center justify-center gap-2 rounded-lg
-                       border-2  bg-[#161C22] text-gray-300 transition-all
-                        hover:text-white focus:outline-none focus:ring-2 border-color-background p-2 ring-lime-400 hover:ring-2 "
+                           border-2  bg-[#161C22] text-gray-300 transition-all
+                            hover:text-white focus:outline-none focus:ring-2 border-color-background p-2 ring-lime-400 hover:ring-2 "
                             >
                                 <PlusIcon />
                                 <span className="font-medium">Add Column</span>
@@ -196,5 +227,6 @@ function KanbanBoard() {
         </div>
     )
 }
+
 
 export default KanbanBoard
