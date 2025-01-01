@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import PlusIcon from "../icons/PlusIcon"
 import { Column, Id, Task } from "../types";
 import ColumnContainer from "./ColumnContainer";
@@ -6,8 +6,17 @@ import { DndContext, DragEndEvent, DragOverEvent, DragOverlay, DragStartEvent, P
 import { arrayMove, SortableContext } from "@dnd-kit/sortable";
 import { createPortal } from "react-dom";
 import TaskCard from "./TaskCard";
+import { useVerifyToken } from '../utils/VerifyRole'
+import Navbar from "./Navbar";
+import { useDispatch } from "react-redux";
+import { setStateColumns, setStateTasks } from '../redux/slices/boardSlice';
+import axios from "axios";
+import Cookies from "js-cookie";
+
+const url = import.meta.env.VITE_BACKEND_URL;
 
 function KanbanBoard() {
+    useVerifyToken();
     const [columns, setColumns] = useState<Column[]>([]);
     const [tasks, setTasks] = useState<Task[]>([]);
     const [activeColumn, setActiveColumn] = useState<Column | null>(null)
@@ -17,9 +26,9 @@ function KanbanBoard() {
             distance: 3
         }
     }))
-    console.log(columns);
     const columnsId = useMemo(() => columns.map((col) => col.id), [columns])
-
+    const dispatch = useDispatch();
+    const token = Cookies.get('token')
     const generateId = () => {
         return Math.floor(Math.random() * 10001)
     }
@@ -53,7 +62,6 @@ function KanbanBoard() {
         if (!over) return
         const activeColumnId = active.id;
         const overColumnId = over.id;
-
         if (activeColumnId === overColumnId) return
         setColumns((columns) => {
             const activeColumnIndex = columns.findIndex(col => col.id === activeColumnId);
@@ -130,73 +138,63 @@ function KanbanBoard() {
         setTasks(newTasks)
     }
 
+    useEffect(() => {
+        console.log({ columns, tasks }, "mutated");
+        dispatch(setStateColumns(columns))
+        dispatch(setStateTasks(tasks))
+    }, [tasks, columns])
+
+    useEffect(() => {
+        const getBoard = async () => {
+            try {
+                const getBoard = await axios.get(`${url}/board/get-board/${token}`);
+                console.log(getBoard)
+                if (getBoard.data.success) {
+                    setColumns(getBoard.data.data.columns)
+                    setTasks(getBoard.data.data.tasks)
+                }
+            } catch (error) {
+                console.log(error);
+            }
+        }
+        getBoard();
+    }, [])
+
+
     return (
-        <div className="m-auto flex min-h-screen w-full items-center overflow-x-auto overflow-y-scroll px-[40px]">
-            <DndContext onDragStart={onDragStart} onDragEnd={onDragEnd} sensors={sensors} onDragOver={onDragOver}>
-                <div className="mx-auto flex gap-4">
-                    <div className="flex gap-4">
-                        <SortableContext items={columnsId}>
-                            {columns.map((col) => (
-                                <ColumnContainer key={col.id} column={col} deleteColumn={deleteColumn} updateColumn={updateColumn} createTask={createTask} tasks={tasks.filter(task => task.columnId === col.id)} deleteTask={deleteTask} updateTask={updateTask} />
-                            ))}
-                        </SortableContext>
-                        <button
-                            onClick={createNewColumn}
-                            className="flex h-[60px] w-[350px] min-w-[350px] items-center justify-center gap-2 rounded-lg
-                   border-2  bg-[#161C22] text-gray-300 transition-all
-                    hover:text-white focus:outline-none focus:ring-2 border-color-background p-2 ring-lime-400 hover:ring-2 "
-                        >
-                            <PlusIcon />
-                            <span className="font-medium">Add Column</span>
-                        </button>
+        <div>
+            <Navbar />
+            <div className="m-auto flex min-h-screen w-full items-center overflow-x-auto overflow-y-scroll px-[40px]">
+                <DndContext onDragStart={onDragStart} onDragEnd={onDragEnd} sensors={sensors} onDragOver={onDragOver}>
+                    <div className="mx-auto flex gap-4">
+                        <div className="flex gap-4">
+                            <SortableContext items={columnsId}>
+                                {columns.map((col) => (
+                                    <ColumnContainer key={col.id} column={col} deleteColumn={deleteColumn} updateColumn={updateColumn} createTask={createTask} tasks={tasks.filter(task => task.columnId === col.id)} deleteTask={deleteTask} updateTask={updateTask} />
+                                ))}
+                            </SortableContext>
+                            <button
+                                onClick={createNewColumn}
+                                className="flex h-[60px] w-[350px] min-w-[350px] items-center justify-center gap-2 rounded-lg
+                       border-2  bg-[#161C22] text-gray-300 transition-all
+                        hover:text-white focus:outline-none focus:ring-2 border-color-background p-2 ring-lime-400 hover:ring-2 "
+                            >
+                                <PlusIcon />
+                                <span className="font-medium">Add Column</span>
+                            </button>
+                        </div>
                     </div>
-                </div>
-                {createPortal(
-                    <DragOverlay>
-                        {activeColumn && <ColumnContainer column={activeColumn}
-                            deleteColumn={deleteColumn} updateColumn={updateColumn} createTask={createTask} deleteTask={deleteTask} updateTask={updateTask} tasks={tasks.filter(task => task.columnId === activeColumn.id)} />}
-                        {activeTask && <TaskCard task={activeTask} deleteTask={deleteTask} updateTask={updateTask} />}
-                    </DragOverlay>, document.body
-                )}
-            </DndContext>
+                    {createPortal(
+                        <DragOverlay>
+                            {activeColumn && <ColumnContainer column={activeColumn}
+                                deleteColumn={deleteColumn} updateColumn={updateColumn} createTask={createTask} deleteTask={deleteTask} updateTask={updateTask} tasks={tasks.filter(task => task.columnId === activeColumn.id)} />}
+                            {activeTask && <TaskCard task={activeTask} deleteTask={deleteTask} updateTask={updateTask} />}
+                        </DragOverlay>, document.body
+                    )}
+                </DndContext>
+            </div>
         </div>
     )
-
 }
 
-// function KanbanBoard() {
-//     const [columns, setColumns] = useState<Column[]>([]);
-
-//     const generateId = () => Math.floor(Math.random() * 10001);
-
-//     const createNewColumn = () => {
-//         const columnToAdd: Column = {
-//             id: generateId(),
-//             title: `Column ${columns.length + 1}`,
-//         };
-//         setColumns([...columns, columnToAdd]);
-//     };
-
-//     return (
-//         <div className="min-h-screen w-full bg-[#0D1117] p-8">
-//             <div className="mx-auto max-w-[1400px] overflow-x-auto">
-//                 <div className="flex gap-6 p-4">
-//                     {columns.map((col) => (
-//                         <ColumnContainer key={col.id} column={col} />
-//                     ))}
-
-//                     <button
-//                         onClick={createNewColumn}
-//                         className="flex h-[60px] w-[350px] min-w-[350px] items-center justify-center gap-2 rounded-lg 
-//             border-2 border-gray-700 bg-[#161C22] p-4 text-gray-300 transition-all 
-//             hover:border-gray-500 hover:bg-[#1C2631] hover:text-white focus:outline-none focus:ring-2 focus:ring-gray-500"
-//                     >
-//                         <PlusIcon />
-//                         <span className="font-medium">Add Column</span>
-//                     </button>
-//                 </div>
-//             </div>
-//         </div>
-//     );
-// }
 export default KanbanBoard
