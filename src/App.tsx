@@ -2,7 +2,7 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import './App.css'
 import KanbanBoard from './components/KanbanBoard'
 import Login from './auth/Login'
-import SignUp from './auth/SignUp'
+import SignUp from './auth/Signup'
 
 function App() {
   return (

@@ -50,5 +50,5 @@ export const useVerifyToken = () => {
         verifyCookie();
     }, [userToken, navigate]);
 
-    return { id: tempData?.id, username: tempData?.username, isVerified: tempData?.isVerified, userEmail: tempData?.email };
+    return { id: tempData?.id, username: tempData?.username, userEmail: tempData?.email };
 };

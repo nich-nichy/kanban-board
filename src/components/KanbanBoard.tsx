@@ -103,7 +103,7 @@ function KanbanBoard() {
                 setColumns((prev) => {
                     const activeIndex = prev.findIndex((col) => col.id === activeId);
                     const overIndex = prev.findIndex((col) => col.id === overId);
-                    if (activeIndex === -1 || overIndex === -1) return prev; // Handle invalid indexes
+                    if (activeIndex === -1 || overIndex === -1) return prev;
                     return arrayMove(prev, activeIndex, overIndex);
                 });
             } else if (active.data.current?.type === "Task") {
@@ -111,12 +111,12 @@ function KanbanBoard() {
                     const activeIndex = prev.findIndex((task) => task.id === activeId);
                     const overIndex = prev.findIndex((task) => task.id === overId);
 
-                    if (activeIndex === -1 || overIndex === -1) return prev; // Handle invalid indexes
+                    if (activeIndex === -1 || overIndex === -1) return prev;
 
                     const updatedTasks = [...prev];
                     updatedTasks[activeIndex] = {
                         ...updatedTasks[activeIndex],
-                        columnId: updatedTasks[overIndex]?.columnId || active.data.current.columnId,
+                        columnId: updatedTasks[overIndex]?.columnId || active?.data?.current?.columnId,
                     };
                     return arrayMove(updatedTasks, activeIndex, overIndex);
                 });

@@ -1,4 +1,3 @@
-import React from 'react';
 import Swal from 'sweetalert2';
 import axios from 'axios';
 import Cookies from 'js-cookie';
@@ -18,7 +17,7 @@ const SignUp = () => {
                     <Formik
                         initialValues={{ username: '', email: '', password: '' }}
                         validate={(values) => {
-                            const errors = {};
+                            const errors: any = {};
                             const passwordRegex = /^(?=.*[0-9])(?=.*[!@#$%^&*])[a-zA-Z0-9!@#$%^&*]{6,}$/;
                             if (!values.username) {
                                 errors.username = 'Required';
@@ -67,7 +66,7 @@ const SignUp = () => {
                                         text: message,
                                     });
                                 }
-                            } catch (error) {
+                            } catch (error: any) {
                                 Swal.fire({
                                     icon: 'error',
                                     title: 'Oops...',

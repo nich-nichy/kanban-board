@@ -1,4 +1,3 @@
-import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Formik } from 'formik';
@@ -18,7 +17,7 @@ const Login = () => {
                     <Formik
                         initialValues={{ email: '', password: '' }}
                         validate={(values) => {
-                            const errors = {};
+                            const errors: any = {};
                             const passwordRegex = /^(?=.*[0-9])(?=.*[!@#$%^&*])[a-zA-Z0-9!@#$%^&*]{6,}$/;
                             if (!values.email) {
                                 errors.email = 'Required';
@@ -56,7 +55,7 @@ const Login = () => {
                                         text: 'Please check your email and password and try again',
                                     });
                                 }
-                            } catch (error) {
+                            } catch (error: any) {
                                 Swal.fire({
                                     icon: 'error',
                                     title: 'Oops...',
