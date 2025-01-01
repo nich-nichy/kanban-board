@@ -39,7 +39,7 @@ const Login = () => {
                                     { email: values.email, password: values.password, isAdmin: false },
                                     { withCredentials: true }
                                 );
-                                const { success, message, token } = data;
+                                const { success, token } = data;
                                 Cookies.set('token', token, { expires: 1, secure: true, sameSite: 'None' });
                                 if (success) {
                                     Swal.fire({

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Column, Id, Task } from '../types'
 import { PlusIcon, Trash2Icon } from 'lucide-react';
 import { SortableContext, useSortable } from '@dnd-kit/sortable';

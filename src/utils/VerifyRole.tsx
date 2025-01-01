@@ -11,7 +11,6 @@ export const useVerifyToken = () => {
         username: "",
         email: "",
     });
-    const [isVerified, setIsVerified] = useState(false);
     const navigate = useNavigate();
     const userToken = Cookies.get("token");
 
@@ -42,8 +41,6 @@ export const useVerifyToken = () => {
                 console.error("Error verifying user", error);
                 Cookies.remove("token");
                 navigate("/login");
-            } finally {
-                setIsVerified(true);
             }
         };
 

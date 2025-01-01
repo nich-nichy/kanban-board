@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { Id, Task } from '../types'
 import { TrashIcon } from 'lucide-react'
 import { useSortable } from '@dnd-kit/sortable';
